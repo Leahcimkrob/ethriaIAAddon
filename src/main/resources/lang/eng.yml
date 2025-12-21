@@ -1,0 +1,37 @@
+# English language file for EthriaIAAddon
+# Englische Sprachdatei für EthriaIAAddon
+
+# General messages
+general:
+  config-reloaded: "&7[&6EthriaIAAddon&7] &3Configuration reloaded!"
+  no-permission: "&7[&6EthriaIAAddon&7] &cNo permission for this command."
+  unknown-command: "&7[&6EthriaIAAddon&7] &cUnknown command: &4{command}"
+  available-commands: "&3Available commands: {commands}"
+
+# Tab-Completion messages
+tabcomplete:
+  main-commands: "help reload customlight"
+  customlight-commands: "help reload"
+  no-permission-tab: ""
+
+# Main command help
+main:
+  help-header: "&7[&6EthriaIAAddon&7] &3Available commands:"
+  help-reload: "&3- reload &7- Reloads ALL configurations and language files"
+  help-customlight: "&3- customlight &7- CustomLight module help (incl. module reload)"
+  help-usage: "&3Usage: /ethriaiaaddon <command>"
+
+# CustomLight Module
+customlight:
+  module-not-loaded: "&7[&6EthriaIAAddon&7] &cCustomLight module is not loaded!"
+  no-permission: "&7[&6Ethria-Light&7] &3You don't have permission for this command."
+  unknown-command: "&7[&6Ethria-Light&7] &4Unknown command. Use /ethriaiaaddon customlight help"
+  config-reloaded: "&7[&6Ethria-Light&7] &3CustomLight configuration reloaded."
+
+  # Help messages
+  help:
+    - "&7[&6Ethria-Light&7] &3Help:"
+    - "&3/ethriaiaaddon customlight help - Shows this help"
+    - "&3/ethriaiaaddon customlight reload - Reloads CustomLight configuration"
+    - "&3Alias: /eia customlight or /eia clight"
+    - "&3Global Reload: /ethriaiaaddon reload (reloads ALL configurations)"

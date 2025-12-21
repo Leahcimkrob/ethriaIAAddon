@@ -1,46 +1,33 @@
-# ==============================================
-# EthriaIAAddon - Modulares ItemsAdder Framework
-# ==============================================
+# EthriaIAAddon Configuration
+# Framework für modulare ItemsAdder-Features
 
-# Module Ein-/Ausschalten
+# Allgemeine Einstellungen
+general:
+  language: de  # Verfügbare Sprachen: de, eng
+
+  # Command-Aliases (Alias -> Subcommand)
+  # Format: alias: "subcommand"
+  # Alle Aliases führen zu ethriaiaaddon.admin Permission
+  command-aliases:
+    # Hauptbefehl-Aliases (zeigen Hilfe)
+    eia: "help"
+    iaaddon: "help"
+    plotiaaddon: "help"
+
+    # Direkte Subcommand-Aliases
+    customlight: "customlight"
+    clight: "customlight"
+    cl: "customlight"
+    help: "help"
+    iaaddonreload: "reload"
+
+# Module Configuration
 modules:
   customlight:
     enabled: true
-  # Für zukünftige Modutle:
+  # Für zukünftige Module:
   # customanvil:
   #   enabled: true
 
-# ==============================================
-# CustomLight Modul Konfiguration
-# ==============================================
 
-# Modell-ID: Lightlevel
-glowing_items:
-  4304307: 15
-  4304308: 15
-  4304309: 15
-  4304310: 15
-  4304311: 15
-  4304312: 15
-  4304313: 15
 
-# Lichtblockerkennung
-radius: 10               # Entfernung von Lichtblöcken in diesem Umkreis (Default: 1)
-update-interval: 1     # in Ticks
-remove-all-on-helmet-off: true   # true = alle Lichtblöcke beim Abnehmen löschen, false = Standardverhalten
-max-light-blocks-per-player: 3
-
-# message
-reload-message: "&7[&6Ethria-Light&7] &3Konfiguration neu geladen."
-nopermission: "&7[&6Ethria-Light&7] &3Du hast keine Berechtigung für diesen Befehl."
-nocommand: "&7[&6Ethria-Light&7] &4Unbekannter Befehl. Benutze /ethriaiaaddon help"
-
-# Hilfeeinträge für /ethriaiaaddon help
-help:
-  - "&7[&6Ethria-Light&7] &3Hilfe:"
-  - "&3/ethriaiaaddon reload - Konfiguration neu laden"
-  - "&3/ethriaiaaddon help - Zeigt diese Hilfe an"
-
-#Commandalias
-command-aliases:
-  - eiaaddon

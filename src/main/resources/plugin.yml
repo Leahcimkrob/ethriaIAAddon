@@ -1,17 +1,21 @@
-name: EthriaIaAddon
+name: EthriaIAAddon
 main: bloody_mind.ethriaiaaddon.EthriaIAAddon
 version: ${project.version}
 api-version: 1.19
 author: Leahcimkrob
+description: EthriaIAAddon Plugin Framework with ItemsAdder and Brigadier support
 commands:
   ethriaiaaddon:
-    description: Main command for the EthriaIAAddon plugin
-    usage: /<command> [reload|help]
-    aliases: [] # Is set dynamically from the config
+    description: Main EthriaIAAddon command with module subcommands
+    usage: /<command> <module> [args...]
+    permission: ethriaiaaddon.admin
 permissions:
-  ethriaiaaddon.use:
-    description: Allows using the EthriaIAAddon main command
+  ethriaiaaddon.admin:
+    description: Allows access to all EthriaIAAddon commands and modules (supersedes all other permissions)
+    default: op
+  ethriaiaaddon.customlight.use:
+    description: Allows using the CustomLight module (basic access)
     default: true
-  ethriaiaaddon.reload:
-    description: Allows reloading the configuration
+  ethriaiaaddon.customlight.admin:
+    description: Allows access to CustomLight admin commands (reload, etc.)
     default: op

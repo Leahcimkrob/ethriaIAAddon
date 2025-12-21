@@ -1,0 +1,23 @@
+# ==============================================
+# CustomLight Modul Konfiguration
+# ==============================================
+
+# Modell-ID: Lightlevel
+glowing_items:
+  '4304307': 15
+  '4304308': 15
+  '4304309': 15
+  '4304310': 15
+  '4304311': 15
+  '4304312': 15
+  '4304313': 15
+  '4202250': 15
+  '3700216': 15
+
+# Lichtblockerkennung
+radius: 10               # Entfernung von Lichtblöcken in diesem Umkreis (Default: 10)
+update-interval: 1       # Update-Intervall in Ticks
+remove-all-on-helmet-off: true   # true = alle Lichtblöcke beim Abnehmen löschen, false = Standardverhalten
+max-light-blocks-per-player: 3   # Maximale Anzahl Lichtblöcke pro Spieler
+
+

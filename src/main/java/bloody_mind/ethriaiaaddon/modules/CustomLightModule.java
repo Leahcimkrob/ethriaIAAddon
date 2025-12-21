@@ -3,25 +3,23 @@ package bloody_mind.ethriaiaaddon.modules;
 import bloody_mind.ethriaiaaddon.AddonModule;
 import bloody_mind.ethriaiaaddon.EthriaIAAddon;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -32,17 +30,13 @@ import java.util.*;
 /**
  * CustomLight Modul - Erzeugt dynamisches Licht basierend auf der ModelID des Helms
  */
-public class CustomLightModule extends AddonModule implements CommandExecutor, TabCompleter, Listener {
+public class CustomLightModule extends AddonModule implements Listener {
 
     private final Map<Integer, Integer> modelIdToLightLevel = new HashMap<>();
-    private String reloadMessage;
-    private String nopermission;
-    private String nocommand;
     private final Map<UUID, Integer> lastModelId = new HashMap<>();
     private final Map<UUID, String> lastLocationKey = new HashMap<>();
     private final Map<UUID, Set<Location>> lightBlockLocations = new HashMap<>();
     private List<String> commandAliases = new ArrayList<>();
-    private List<String> helpMessages = new ArrayList<>();
     private int removalRadius = 1;
     private int updateInterval = 10;
     private boolean removeAllOnHelmetOff = true;
@@ -56,7 +50,7 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
 
     @Override
     public void onEnable() {
-        if (!isModuleEnabled()) {
+        if (!getConfig().getBoolean("modules.customlight.enabled", true)) {
             plugin.getLogger().info("CustomLight Modul ist deaktiviert");
             return;
         }
@@ -66,8 +60,6 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
         // Konfiguration laden
         loadConfigValues();
 
-        // Commands registrieren
-        registerCommands();
 
         // Events registrieren
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -135,18 +127,72 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
         }.runTaskTimer(plugin, 0, updateInterval);
     }
 
-    private void registerCommands() {
-        PluginCommand cmd = plugin.getCommand("ethriaiaaddon");
-        if (cmd != null) {
-            cmd.setExecutor(this);
-            cmd.setTabCompleter(this);
+    /**
+     * Behandelt Commands für das CustomLight Modul
+     */
+    public boolean handleCommand(CommandSender sender, String[] args) {
+        // Prüfe CustomLight-spezifische Permission ODER Admin-Permission
+        if (!sender.hasPermission("ethriaiaaddon.customlight.use") && !sender.hasPermission("ethriaiaaddon.admin")) {
+            plugin.getLanguageManager().sendMessage(sender, "customlight.no-permission");
+            return true;
         }
+
+        if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("help"))) {
+            List<String> helpMessages = plugin.getLanguageManager().getMessageList("customlight.help");
+            if (helpMessages != null) {
+                for (String helpEntry : helpMessages) {
+                    sender.sendMessage(helpEntry);
+                }
+            }
+            return true;
+        }
+
+        // Modul-spezifischer Reload (nur customlight.yml)
+        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            // Für Reload benötigt man Admin-Permission (entweder Modul-Admin oder Global-Admin)
+            if (sender.hasPermission("ethriaiaaddon.customlight.admin") || sender.hasPermission("ethriaiaaddon.admin")) {
+                // Nur CustomLight-Konfiguration neu laden
+                plugin.getConfigManager().reloadModuleConfig("customlight");
+                loadConfigValues();
+
+                plugin.getLanguageManager().sendMessage(sender, "customlight.config-reloaded");
+                plugin.getLogger().info("CustomLight-Konfiguration neu geladen von: " + sender.getName());
+            } else {
+                plugin.getLanguageManager().sendMessage(sender, "customlight.no-permission");
+            }
+            return true;
+        }
+
+        plugin.getLanguageManager().sendMessage(sender, "customlight.unknown-command");
+        return true;
+    }
+
+    /**
+     * Behandelt Tab-Completion für das CustomLight Modul
+     */
+    public List<String> handleTabComplete(CommandSender sender, String[] args) {
+        if (args.length == 1) {
+            List<String> completions = new ArrayList<>();
+            completions.add("help");
+            if (sender.hasPermission("ethriaiaaddon.customlight.admin") || sender.hasPermission("ethriaiaaddon.admin")) {
+                completions.add("reload");
+            }
+            return completions;
+        }
+        return Collections.emptyList();
     }
 
     private void loadConfigValues() {
-        FileConfiguration config = getConfig();
+        // Lade die separate CustomLight-Konfiguration
+        FileConfiguration config = plugin.getConfigManager().getModuleConfig("customlight");
+        if (config == null) {
+            plugin.getLogger().warning("CustomLight-Konfiguration konnte nicht geladen werden!");
+            return;
+        }
+        
         modelIdToLightLevel.clear();
 
+        // Lade CustomLight-spezifische Konfiguration aus customlight.yml
         if (config.isConfigurationSection("glowing_items")) {
             Set<String> keys = config.getConfigurationSection("glowing_items").getKeys(false);
             for (String key : keys) {
@@ -157,7 +203,7 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
                         modelIdToLightLevel.put(id, level);
                     }
                 } catch (NumberFormatException e) {
-                    // ignore invalid config entry
+                    plugin.getLogger().warning("Ungültige ModelID in CustomLight-Konfiguration: " + key);
                 }
             }
         }
@@ -167,19 +213,9 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
         this.removeAllOnHelmetOff = config.getBoolean("remove-all-on-helmet-off", true);
         this.maxLightBlocksPerPlayer = config.getInt("max-light-blocks-per-player", 3);
 
-        reloadMessage = config.getString("reload-message", "§7[§6Ethria-Light§7] §3Konfiguration neu geladen.");
-        nopermission = config.getString("nopermission", "§7[§6Ethria-Light§7] §3Du hast keine Berechtigung für diesen Befehl.");
-        nocommand = config.getString("nocommand", "§7[§6Ethria-Light§7] §4Unbekannter Befehl. Benutze /ethriaiaaddon help");
         commandAliases = config.getStringList("command-aliases");
-        helpMessages = config.getStringList("help");
-
-        if (helpMessages.isEmpty()) {
-            helpMessages = Arrays.asList(
-                    "§7[§6Ethria-Light§7] §3Hilfe:",
-                    "§3/ethriaiaaddon reload - Konfiguration neu laden",
-                    "§3/ethriaiaaddon help - Zeigt diese Hilfe an"
-            );
-        }
+        
+        plugin.getLogger().info("CustomLight-Konfiguration geladen: " + modelIdToLightLevel.size() + " leuchtende Items");
     }
 
     private void placeAndTrackLightBlock(Player player, int modelId, Location lightLocation) {
@@ -269,50 +305,105 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
     /**
      * Event Handler: Inventar-Klick - Überprüfe Helmet-Slot Änderungen
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
 
         Player player = (Player) event.getWhoClicked();
 
-        // Prüfe ob es sich um den Helmet-Slot handelt
-        if (event.getSlot() == 39 && event.getInventory().getType() == InventoryType.PLAYER) {
-            // Verzögere die Überprüfung um 1 Tick, damit das Item korrekt gesetzt ist
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                handleHelmetChange(player);
-            }, 1L);
+        // Nur bei Player-Inventar reagieren
+        if (event.getInventory().getType() != InventoryType.PLAYER) return;
+
+        boolean shouldCheck = false;
+
+        // Prüfe ob es sich um den Helmet-Slot handelt (Slot 39 im Player-Inventar)
+        if (event.getSlot() == 39) {
+            shouldCheck = true;
         }
 
         // Prüfe auch Shift-Click auf Items die potentiell Helme sein könnten
-        if (event.isShiftClick() && event.getCurrentItem() != null) {
+        else if (event.isShiftClick() && event.getCurrentItem() != null) {
             ItemStack item = event.getCurrentItem();
             if (item.hasItemMeta() && item.getItemMeta().hasCustomModelData()) {
                 int modelId = item.getItemMeta().getCustomModelData();
                 if (modelIdToLightLevel.containsKey(modelId)) {
-                    // Verzögere die Überprüfung um 1 Tick
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        handleHelmetChange(player);
-                    }, 1L);
+                    shouldCheck = true;
                 }
             }
+        }
+
+        if (shouldCheck) {
+            // Verzögere die Überprüfung um 2 Ticks für vollständige Inventory-Update
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    handleHelmetChange(player);
+                }
+            }, 2L);
         }
     }
 
     /**
      * Event Handler: Inventar-Drag - Überprüfe Helmet-Slot Änderungen
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
 
         Player player = (Player) event.getWhoClicked();
 
-        // Prüfe ob der Helmet-Slot betroffen ist
+        // Nur bei Player-Inventar reagieren
+        if (event.getInventory().getType() != InventoryType.PLAYER) return;
+
+        // Prüfe ob der Helmet-Slot betroffen ist (Slot 39)
         if (event.getRawSlots().contains(39)) {
-            // Verzögere die Überprüfung um 1 Tick
+            // Verzögere die Überprüfung um 2 Ticks
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                handleHelmetChange(player);
-            }, 1L);
+                if (player.isOnline()) {
+                    handleHelmetChange(player);
+                }
+            }, 2L);
+        }
+    }
+
+    /**
+     * Event Handler: Item Drop - Überprüfe ob ein Light-Helmet gedroppt wurde
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        ItemStack item = event.getItemDrop().getItemStack();
+
+        if (item.hasItemMeta() && item.getItemMeta().hasCustomModelData()) {
+            int modelId = item.getItemMeta().getCustomModelData();
+            if (modelIdToLightLevel.containsKey(modelId)) {
+                // Verzögere die Überprüfung um 1 Tick
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        handleHelmetChange(player);
+                    }
+                }, 1L);
+            }
+        }
+    }
+
+    /**
+     * Event Handler: Item Break - Überprüfe ob ein Light-Helmet kaputt gegangen ist
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerItemBreak(PlayerItemBreakEvent event) {
+        Player player = event.getPlayer();
+        ItemStack item = event.getBrokenItem();
+
+        if (item.hasItemMeta() && item.getItemMeta().hasCustomModelData()) {
+            int modelId = item.getItemMeta().getCustomModelData();
+            if (modelIdToLightLevel.containsKey(modelId)) {
+                // Verzögere die Überprüfung um 1 Tick
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline()) {
+                        handleHelmetChange(player);
+                    }
+                }, 1L);
+            }
         }
     }
 
@@ -320,26 +411,35 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
      * Behandelt Helmet-Änderungen und aktualisiert entsprechend die Lichtblöcke
      */
     private void handleHelmetChange(Player player) {
-        ItemStack helmet = player.getInventory().getHelmet();
-        int newModelId = -1;
+        try {
+            if (!player.isOnline()) return;
 
-        if (helmet != null && helmet.hasItemMeta() && helmet.getItemMeta().hasCustomModelData()) {
-            newModelId = helmet.getItemMeta().getCustomModelData();
-        }
+            ItemStack helmet = player.getInventory().getHelmet();
+            int newModelId = -1;
 
-        int oldModelId = lastModelId.getOrDefault(player.getUniqueId(), -2);
-
-        // Wenn sich das Helmet geändert hat
-        if (oldModelId != newModelId) {
-            lastModelId.put(player.getUniqueId(), newModelId);
-
-            // Wenn das neue Helmet kein Licht erzeugt oder kein Helmet vorhanden
-            if (!modelIdToLightLevel.containsKey(newModelId)) {
-                if (removeAllOnHelmetOff) {
-                    removeAllLightBlocks(player);
-                }
+            if (helmet != null && helmet.hasItemMeta() && helmet.getItemMeta().hasCustomModelData()) {
+                newModelId = helmet.getItemMeta().getCustomModelData();
             }
-            // Ansonsten wird das neue Licht durch den normalen Task-Loop gesetzt
+
+            int oldModelId = lastModelId.getOrDefault(player.getUniqueId(), -2);
+
+            // Wenn sich das Helmet geändert hat
+            if (oldModelId != newModelId) {
+                lastModelId.put(player.getUniqueId(), newModelId);
+
+                // Wenn das neue Helmet kein Licht erzeugt oder kein Helmet vorhanden
+                if (!modelIdToLightLevel.containsKey(newModelId)) {
+                    if (removeAllOnHelmetOff) {
+                        removeAllLightBlocks(player);
+                        plugin.getLogger().fine("Alle Lichtblöcke für " + player.getName() + " entfernt (Helmet abgenommen)");
+                    }
+                } else {
+                    plugin.getLogger().fine("Light-Helmet für " + player.getName() + " erkannt: ModelID " + newModelId);
+                }
+                // Ansonsten wird das neue Licht durch den normalen Task-Loop gesetzt
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Fehler beim Behandeln von Helmet-Änderung für " + player.getName() + ": " + e.getMessage());
         }
     }
 
@@ -363,47 +463,5 @@ public class CustomLightModule extends AddonModule implements CommandExecutor, T
         // Cleanup der Maps
         lastModelId.remove(player.getUniqueId());
         lastLocationKey.remove(player.getUniqueId());
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (label.equalsIgnoreCase("ethriaiaaddon") || commandAliases.contains(label.toLowerCase())) {
-            if (!sender.hasPermission("ethriaiaaddon.use")) {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', nopermission));
-                return true;
-            }
-
-            if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("help"))) {
-                for (String helpEntry : helpMessages) {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', helpEntry));
-                }
-                return true;
-            }
-
-            if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-                if (sender.hasPermission("ethriaiaaddon.reload")) {
-                    plugin.reloadModules();
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', reloadMessage));
-                } else {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', nopermission));
-                }
-                return true;
-            }
-
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', nocommand));
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if ((command.getName().equalsIgnoreCase("ethriaiaaddon") || commandAliases.contains(alias.toLowerCase())) && args.length == 1) {
-            List<String> completions = new ArrayList<>();
-            completions.add("reload");
-            completions.add("help");
-            return completions;
-        }
-        return Collections.emptyList();
     }
 }
