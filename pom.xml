@@ -1,0 +1,91 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>bloody_mind</groupId>
+    <artifactId>EthriaIAAddon</artifactId>
+    <version>1.4</version>
+    <packaging>jar</packaging>
+
+    <name>EthriaIAAddon</name>
+    <description>EthriaIAAddon/GlowingHalo Plugin with ItemsAdder, Brigadier support</description>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+    <repositories>
+      <repository>
+            <id>matteodev</id>
+            <url>https://maven.devs.beer/</url>
+      </repository>
+      <repository>
+            <id>enginehub</id>
+            <url>https://maven.enginehub.org/repo/</url>
+      </repository>
+      <repository>
+            <id>minecraft-libraries</id>
+            <name>Minecraft Libraries</name>
+            <url>https://libraries.minecraft.net</url>
+      </repository>      
+      <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+      </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- ItemsAdder API -->
+        <dependency>
+            <groupId>dev.lone</groupId>
+            <artifactId>api-itemsadder</artifactId>
+            <version>4.0.10</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Mojang Brigadier -->
+        <dependency>
+            <groupId>com.mojang</groupId>
+            <artifactId>brigadier</artifactId>
+            <version>1.0.18</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Paper API -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.10-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+
+        <!-- Kyori Adventure API -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>4.25.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>4.25.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Java Compiler Plugin -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

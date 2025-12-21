@@ -1,0 +1,17 @@
+name: EthriaIaAddon
+main: bloody_mind.ethriaiaaddon.EthriaIAAddon
+version: ${project.version}
+api-version: 1.19
+author: Leahcimkrob
+commands:
+  ethriaiaaddon:
+    description: Main command for the EthriaIAAddon plugin
+    usage: /<command> [reload|help]
+    aliases: [] # Is set dynamically from the config
+permissions:
+  ethriaiaaddon.use:
+    description: Allows using the EthriaIAAddon main command
+    default: true
+  ethriaiaaddon.reload:
+    description: Allows reloading the configuration
+    default: op
